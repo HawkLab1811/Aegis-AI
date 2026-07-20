@@ -1,0 +1,68 @@
+{
+  "mcpServers": {
+    "aegis-test": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@crowdstrike/aidr-mcp-proxy",
+        "--",
+        "python3",
+        "/app/mcp_server/server.py"
+      ],
+      "env": {
+        "CS_AIDR_TOKEN": "${AIDR_TOKEN}",
+        "CS_AIDR_BASE_URL_TEMPLATE": "https://api.crowdstrike.com/aidr/{SERVICE_NAME}",
+        "APP_NAME": "AegisAI-MCP",
+        "MCP_WORK_DIR": "/tmp/aegis_mcp_workspace"
+      }
+    },
+    "aegis-test-direct": {
+      "command": "python3",
+      "args": ["/app/mcp_server/server.py"],
+      "env": {
+        "MCP_WORK_DIR": "/tmp/aegis_mcp_workspace"
+      }
+    },
+    "hr-toolbox": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@crowdstrike/aidr-mcp-proxy",
+        "--",
+        "python3",
+        "/app/mcp_server/hr_server.py"
+      ],
+      "env": {
+        "CS_AIDR_TOKEN": "${AIDR_TOKEN}",
+        "CS_AIDR_BASE_URL_TEMPLATE": "https://api.crowdstrike.com/aidr/{SERVICE_NAME}",
+        "APP_NAME": "AegisAI-HR"
+      }
+    },
+    "hr-toolbox-direct": {
+      "command": "python3",
+      "args": ["/app/mcp_server/hr_server.py"],
+      "env": {}
+    },
+    "llm-helper": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@crowdstrike/aidr-mcp-proxy",
+        "--",
+        "python3",
+        "/app/mcp_server/llm_helper_server.py"
+      ],
+      "env": {
+        "CS_AIDR_TOKEN": "${AIDR_TOKEN}",
+        "CS_AIDR_BASE_URL_TEMPLATE": "https://api.crowdstrike.com/aidr/{SERVICE_NAME}",
+        "APP_NAME": "AegisAI-LLMHelper"
+      }
+    },
+    "llm-helper-direct": {
+      "command": "python3",
+      "args": ["/app/mcp_server/llm_helper_server.py"],
+      "env": {}
+    }
+  },
+  "_comment": "Proxy variants route through CrowdStrike MCP proxy for AIDR scanning. Direct variants bypass proxy for testing."
+}

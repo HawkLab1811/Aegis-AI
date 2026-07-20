@@ -1,0 +1,45 @@
+# Aegis AI - Secure AI Gateway
+# Python Dependencies
+
+# Web Framework
+fastapi>=0.115.0
+uvicorn[standard]>=0.34.0
+python-multipart>=0.0.19
+
+# Database
+sqlalchemy>=2.0.0
+
+# Authentication & Security
+python-jose[cryptography]>=3.3.0
+cryptography>=44.0.0
+python-dotenv>=1.0.0
+pydantic[email]>=2.10.0
+
+# HTTP Client
+httpx>=0.28.0
+
+# LLM Providers
+openai>=1.58.0
+anthropic>=0.40.0
+google-generativeai>=0.8.0
+
+# RAG / Vector Store
+chromadb>=0.5.0
+langchain-text-splitters>=0.3.0
+langchain-community>=0.3.0
+
+# Document Processing
+pypdf>=5.0.0
+unstructured>=0.16.0
+
+# Media Processing (images, videos, Excel, Word, PowerPoint)
+Pillow>=10.0.0
+openpyxl>=3.1.0
+python-docx>=1.0.0
+python-pptx>=0.6.0
+
+# CrowdStrike AIDR SDK
+crowdstrike-aidr>=0.7.0
+
+# MCP Server
+mcp[cli]>=1.21.0

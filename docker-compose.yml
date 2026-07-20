@@ -1,0 +1,48 @@
+# =============================================================================
+# Aegis AI - Docker Compose Configuration
+# =============================================================================
+#
+# Usage:
+#   cp .env.example .env    # Create your environment file
+#   docker-compose up -d    # Start in background
+#   docker-compose logs -f  # View logs
+#   docker-compose down     # Stop and remove containers
+#   docker-compose down -v  # Stop and remove containers + volumes
+#
+# First launch: Open http://localhost:15000 and complete the Setup Wizard.
+#
+# Data Persistence:
+#   - Database (SQLite): aegis-data:/app/data/aegis.db
+#   - RAG Files: aegis-data:/app/data/rag_storage/
+#   - Vector Store (ChromaDB): aegis-data:/app/data/chroma_db/
+# =============================================================================
+
+services:
+  aegis-ai:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: aegis-ai
+    ports:
+      - "${AEGIS_PORT:-15000}:15000"
+    volumes:
+      - aegis-data:/app/data
+      - mcp-workspace:/app/mcp_workspace
+    environment:
+      - DATA_DIR=/app/data
+      - MCP_WORK_DIR=/app/mcp_workspace
+    env_file:
+      - .env
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:15000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  aegis-data:
+    driver: local
+  mcp-workspace:
+    driver: local
