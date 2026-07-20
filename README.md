@@ -62,7 +62,7 @@ A guided 4-step setup that runs on first launch:
 ### Clone and Build
 
 ```bash
-git clone https://github.com/your-org/aegis-ai.git
+git clone https://github.com/HawkLab1811/Aegis-AI.git
 cd aegis-ai
 cp .env.example .env
 docker-compose up -d
