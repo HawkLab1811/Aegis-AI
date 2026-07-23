@@ -257,7 +257,7 @@ A mock attacker website is included to demonstrate data exfiltration risks:
   - Unique source IP tracking
 
 <!-- Screenshot: Attacker dashboard -->
-![Attacker Dashboard](screenshots/attacker-site.png)
+![Attacker Dashboard](screenshots/attacker_site.png)
 
 ### Security Demo Walkthrough
 
