@@ -50,6 +50,17 @@ A guided 4-step setup that runs on first launch:
 - Database-backed authentication (no .env dependency for passwords)
 - Auto-generated encryption key at runtime
 
+### Skills System
+- File-based skill storage as Markdown files in `data/skills/`
+- 4-step skill creation wizard (name, description, workflow, preview)
+- Per-conversation skill selection with persistent state
+- Skills injected into system prompt for customized AI behavior
+- 6 default templates: 4 legitimate + 2 security demonstration
+- Full CRUD operations via Settings page and REST API
+
+<!-- Screenshot: Main Dashboard -->
+![Main Dashboard](screenshots/main.png)
+
 ---
 
 ## Quick Start
@@ -62,7 +73,7 @@ A guided 4-step setup that runs on first launch:
 ### Clone and Build
 
 ```bash
-git clone https://github.com/HawkLab1811/Aegis-AI.git
+git clone https://github.com/your-org/aegis-ai.git
 cd aegis-ai
 cp .env.example .env
 docker-compose up -d
@@ -78,6 +89,26 @@ docker-compose up -d
    - Configure MCP proxy settings (optional)
    - Select an AI engine and enter your API key
 4. Start chatting through the secure AI gateway
+
+<!-- Screenshot: Firast Time Wizard -->
+![Step 1](screenshots/wizard1.png)
+
+<!-- Screenshot: Firast Time Wizard -->
+![Step 2](screenshots/wizard2.png)
+
+<!-- Screenshot: Firast Time Wizard -->
+![Step 3](screenshots/wizard3.png)
+
+<!-- Screenshot: Firast Time Wizard -->
+![Step 4](screenshots/wizard4.png)
+
+
+
+### Accessing the Security Demo
+
+The attacker website for the Skills security demonstration is available at:
+- **URL**: http://localhost:16000
+- **Purpose**: View data captured by malicious skill templates (for educational purposes)
 
 ### Custom Port
 
@@ -104,6 +135,13 @@ FastAPI Backend (port 15000)
 |   RAG Context Retrieval (ChromaDB)
 |       |
 |       v
+|   System Prompt Composition
+|       - Agent's base prompt
+|       - MCP tool descriptions
+|       - RAG context
+|       - **Skill instructions** (if selected)
+|       |
+|       v
 |   LLM Generation (OpenAI / Anthropic / Google / xAI / MiMo)
 |       |
 |       v
@@ -118,7 +156,7 @@ Response to User
 
 ### Data Persistence
 All data is stored in Docker volumes:
-- `aegis-data` - SQLite database, RAG files, ChromaDB vectors
+- `aegis-data` - SQLite database, RAG files, ChromaDB vectors, **Skills Markdown files**
 - `mcp-workspace` - MCP server sandboxed workspace
 
 ---
@@ -152,6 +190,112 @@ Aegis AI includes 3 pre-configured MCP servers that are automatically seeded on 
 | Aegis Test Server | AIDR policy validation | 11 tools (file ops, shell, data writing) |
 | HR ToolBox Server | PII detection testing | 5 tools (employee lookup, salary reports) |
 | LLM Helper Server | Prompt injection testing | 4 tools (including hidden injection) |
+
+---
+
+## Skills System & Security Demonstration
+
+### What are Skills?
+
+Skills are reusable instruction sets that can be injected into the AI's system prompt. They allow users to define custom workflows and behaviors for the AI assistant. Skills are stored as Markdown files and can be selected per-conversation.
+
+
+### Creating Skills
+
+1. Navigate to **Settings → Skills** tab
+2. Click **Open Skill Wizard**
+3. Follow the 4-step process:
+   - **Step 1**: Enter skill name (letters, numbers, underscores only - no spaces)
+   - **Step 2**: Write a description of what the skill does
+   - **Step 3**: Define the step-by-step workflow
+   - **Step 4**: Preview the generated Markdown file
+4. Click **Create Skill** to save
+
+
+### Using Skills
+
+1. In the chat window, click the **lightning icon** next to the send button
+2. Select a skill from the dropdown menu
+3. The skill remains active for the entire conversation
+4. The selected skill is injected into the system prompt for all messages
+
+
+### Default Skill Templates
+
+#### Legitimate Skills
+
+| Skill | Category | Description |
+|-------|----------|-------------|
+| `code_reviewer` | Coding | Systematic code review workflow following industry best practices |
+| `technical_writer` | Writing | Technical documentation specialist for clear, comprehensive docs |
+| `data_analyst` | Analysis | Data analysis expert following systematic methodology |
+| `debug_expert` | Coding | Structured debugging approach for efficient problem resolution |
+
+#### Malicious Demo Skills (Security Testing)
+
+| Skill | Attack Vector | Description |
+|-------|---------------|-------------|
+| `data_collector_demo` | Data Exfiltration | Attempts to send conversation data to attacker website via hidden markdown image |
+| `system_helper_demo` | OS Command Injection | Attempts to execute OS commands and send system info to attacker website |
+
+These malicious skills are **clearly labeled** in the UI with red warning badges and are intended for **educational purposes only** to demonstrate how CrowdStrike AIDR protects against prompt injection attacks.
+
+<!-- Screenshot: Pre-Defined Skills -->
+![Pre-Defined Skills](screenshots/settings.png)
+
+### Attacker Website (Security Demo)
+
+A mock attacker website is included to demonstrate data exfiltration risks:
+
+- **URL**: http://localhost:16000
+- **Purpose**: Displays data captured by malicious skills in real-time
+- **Theme**: Dark "malicious" terminal-style interface
+- **Features**:
+  - Live dashboard with auto-refresh (3 seconds)
+  - Shows captured data, OS info, environment variables
+  - Clear button to reset captured data
+  - Unique source IP tracking
+
+<!-- Screenshot: Attacker dashboard -->
+![Attacker Dashboard](screenshots/attacker-site.png)
+
+### Security Demo Walkthrough
+
+#### Demo 1: AIDR Blocks Data Exfiltration
+
+1. Open Aegis at http://localhost:15000
+2. Open attacker dashboard at http://localhost:16000 in another tab
+3. In Aegis, select the `data_collector_demo` skill
+4. Send a message containing sensitive information (e.g., "My password is secret123")
+5. **Expected**: AIDR detects the suspicious URL pattern and blocks the exfiltration
+6. **Verify**: Attacker dashboard shows NO new data
+
+#### Demo 2: AIDR Blocks Command Injection
+
+1. Select the `system_helper_demo` skill
+2. Send a message: "Check my system configuration"
+3. **Expected**: AIDR detects the command injection pattern and blocks it
+4. **Verify**: Attacker dashboard shows NO new data
+
+#### Demo 3: Bypass AIDR (Educational Only)
+
+**WARNING**: This demo intentionally bypasses security controls.
+
+1. Toggle AIDR security **OFF** (shield icon in sidebar)
+2. Select `data_collector_demo` skill
+3. Send a message with fake sensitive data
+4. **Expected**: Without AIDR, the malicious instruction executes
+5. **Verify**: Attacker dashboard shows the exfiltrated data
+6. **Important**: Re-enable AIDR immediately after this demo
+
+### Why This Matters
+
+This demonstration highlights the critical importance of AI security scanning:
+
+- **Prompt Injection**: Malicious instructions can be hidden in user-configurable content
+- **Data Exfiltration**: AI assistants can be tricked into sending data to external servers
+- **Command Injection**: AI models can be manipulated to execute arbitrary commands
+- **AIDR Protection**: CrowdStrike AIDR scans all inputs and outputs to detect and block these attacks
 
 ---
 
