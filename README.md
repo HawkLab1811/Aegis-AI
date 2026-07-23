@@ -91,16 +91,16 @@ docker-compose up -d
 4. Start chatting through the secure AI gateway
 
 <!-- Screenshot: Firast Time Wizard -->
-![Step 1](screenshots/wizard1.png)
+![Step 1](screenshots/wizard_1.png)
 
 <!-- Screenshot: Firast Time Wizard -->
-![Step 2](screenshots/wizard2.png)
+![Step 2](screenshots/wizard_2.png)
 
 <!-- Screenshot: Firast Time Wizard -->
-![Step 3](screenshots/wizard3.png)
+![Step 3](screenshots/wizard_3.png)
 
 <!-- Screenshot: Firast Time Wizard -->
-![Step 4](screenshots/wizard4.png)
+![Step 4](screenshots/wizard_4.png)
 
 
 
