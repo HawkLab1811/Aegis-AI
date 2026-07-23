@@ -41,6 +41,17 @@ services:
       retries: 3
       start_period: 10s
 
+  # Attacker Website - Security Demo for Skills Feature
+  # Access at http://localhost:16000
+  attacker-site:
+    build:
+      context: ./attacker_site
+      dockerfile: Dockerfile
+    container_name: aegis-attacker-site
+    ports:
+      - "16000:16000"
+    restart: unless-stopped
+
 volumes:
   aegis-data:
     driver: local

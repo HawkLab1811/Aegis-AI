@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attacker Dashboard - Aegis Security Demo</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>☠ EXFILTRATION DASHBOARD ☠</h1>
+            <div class="subtitle">Aegis AI Skills Security Demonstration</div>
+            <div class="warning">
+                ⚠ EDUCATIONAL PURPOSE ONLY - This dashboard demonstrates data exfiltration risks from malicious AI skills
+            </div>
+        </div>
+
+        <!-- Stats Bar -->
+        <div class="stats-bar">
+            <div class="stat">
+                <div class="stat-value" id="total-entries">{{ data|length }}</div>
+                <div class="stat-label">Total Captures</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="unique-ips">{{ data|map(attribute='ip')|unique|list|length }}</div>
+                <div class="stat-label">Unique Sources</div>
+            </div>
+            <div class="stat">
+                <div class="live-indicator">
+                    <div class="live-dot"></div>
+                    LIVE MONITORING
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <button class="btn btn-refresh" onclick="refreshData()">↻ Refresh</button>
+            <button class="btn btn-danger" onclick="clearAllData()">⚠ Clear All Data</button>
+        </div>
+
+        <!-- Data Log -->
+        <div class="data-log" id="data-log">
+            {% if data %}
+                {% for entry in data|reverse %}
+                <div class="log-entry">
+                    <div class="log-header">
+                        <span class="log-time">{{ entry.timestamp }}</span>
+                        <span class="log-ip">Source: {{ entry.ip }}</span>
+                    </div>
+                    <div class="log-data">
+                        {% if entry.data %}
+                            <div><span class="label">DATA:</span> <span class="value">{{ entry.data }}</span></div>
+                        {% endif %}
+                        {% if entry.os_info %}
+                            <div><span class="label">OS INFO:</span> <span class="value">{{ entry.os_info }}</span></div>
+                        {% endif %}
+                        {% if entry.env_info %}
+                            <div><span class="label">ENV:</span> <span class="value">{{ entry.env_info }}</span></div>
+                        {% endif %}
+                        {% if entry.hosts_info %}
+                            <div><span class="label">HOST:</span> <span class="value">{{ entry.hosts_info }}</span></div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <div class="icon">👁</div>
+                    <h3>Waiting for Data...</h3>
+                    <p>No exfiltrated data captured yet.<br>Use a malicious skill in Aegis to see data appear here.</p>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>Aegis AI Security Demo | <a href="https://github.com/your-repo/aegis">Learn More</a></p>
+            <p>This is a demonstration tool for educational purposes only.</p>
+        </div>
+    </div>
+
+    <script>
+        // Auto-refresh every 3 seconds
+        let refreshInterval = setInterval(refreshData, 3000);
+
+        async function refreshData() {
+            try {
+                const response = await fetch('/api/data');
+                const data = await response.json();
+                updateDashboard(data);
+            } catch (error) {
+                console.error('Refresh failed:', error);
+            }
+        }
+
+        function updateDashboard(data) {
+            // Update stats
+            document.getElementById('total-entries').textContent = data.length;
+            const uniqueIps = [...new Set(data.map(d => d.ip))].length;
+            document.getElementById('unique-ips').textContent = uniqueIps;
+
+            // Update log
+            const logContainer = document.getElementById('data-log');
+            
+            if (data.length === 0) {
+                logContainer.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">👁</div>
+                        <h3>Waiting for Data...</h3>
+                        <p>No exfiltrated data captured yet.<br>Use a malicious skill in Aegis to see data appear here.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            logContainer.innerHTML = data.reverse().map(entry => `
+                <div class="log-entry">
+                    <div class="log-header">
+                        <span class="log-time">${entry.timestamp}</span>
+                        <span class="log-ip">Source: ${entry.ip}</span>
+                    </div>
+                    <div class="log-data">
+                        ${entry.data ? `<div><span class="label">DATA:</span> <span class="value">${escapeHtml(decodeBase64(entry.data))}</span></div>` : ''}
+                        ${entry.os_info ? `<div><span class="label">OS INFO:</span> <span class="value">${escapeHtml(decodeBase64(entry.os_info))}</span></div>` : ''}
+                        ${entry.env_info ? `<div><span class="label">ENV:</span> <span class="value" style="white-space: pre-wrap;">${escapeHtml(decodeBase64(entry.env_info))}</span></div>` : ''}
+                        ${entry.hosts_info ? `<div><span class="label">HOST:</span> <span class="value">${escapeHtml(decodeBase64(entry.hosts_info))}</span></div>` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function clearAllData() {
+            if (!confirm('Clear all captured data?')) return;
+            try {
+                await fetch('/clear', { method: 'POST' });
+                refreshData();
+            } catch (error) {
+                console.error('Clear failed:', error);
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function decodeBase64(str) {
+            if (!str) return str;
+            try {
+                // Try to decode base64
+                return atob(str);
+            } catch (e) {
+                // If not valid base64, return as-is
+                return str;
+            }
+        }
+    </script>
+</body>
+</html>

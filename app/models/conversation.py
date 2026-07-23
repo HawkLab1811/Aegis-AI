@@ -16,6 +16,7 @@ class Conversation(Base):
     engine_id = Column(Integer, ForeignKey("ai_engines.id"), nullable=True)
     collector_id = Column(Integer, ForeignKey("aidr_collectors.id"), nullable=True)
     app_name = Column(String(255), nullable=True)
+    selected_skill = Column(String(255), nullable=True)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

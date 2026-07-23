@@ -1,5 +1,9 @@
 # Aegis AI - Secure AI Gateway
 
+> **WARNING — TESTING & DEMONSTRATION ONLY**
+>
+> This platform is provided **solely for testing, evaluation, and educational demonstration purposes**. It was **not designed, hardened, or audited for production usage**. Do not deploy Aegis AI in production environments, on public-facing infrastructure, or with real sensitive data. The security demonstrations (malicious skills, attacker site) are intentional educational tools. Use at your own risk.
+
 Aegis AI is a security-first AI gateway that provides **CrowdStrike AIDR-protected** access to multiple LLM providers. It acts as a proxy between users and AI models, scanning all inputs and outputs through CrowdStrike's AI Detection and Response (AIDR) service.
 
 ---

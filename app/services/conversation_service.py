@@ -37,7 +37,8 @@ class ConversationService:
         agent_id: Optional[int] = None,
         engine_id: Optional[int] = None,
         collector_id: Optional[int] = None,
-        app_name: Optional[str] = None
+        app_name: Optional[str] = None,
+        selected_skill: Optional[str] = None
     ) -> Conversation:
         conv = Conversation(
             user_id=user_id,
@@ -46,6 +47,7 @@ class ConversationService:
             engine_id=engine_id,
             collector_id=collector_id,
             app_name=app_name,
+            selected_skill=selected_skill,
             is_active=True
         )
         self.db.add(conv)
@@ -70,7 +72,8 @@ class ConversationService:
         engine_id: Optional[int] = None,
         collector_id: Optional[int] = None,
         app_name: Optional[str] = None,
-        is_active: Optional[bool] = None
+        is_active: Optional[bool] = None,
+        selected_skill: Optional[str] = None
     ) -> Optional[Conversation]:
         conv = self.get_conversation(conv_id)
         if not conv:
@@ -87,6 +90,8 @@ class ConversationService:
             conv.app_name = app_name
         if is_active is not None:
             conv.is_active = is_active
+        if selected_skill is not None:
+            conv.selected_skill = selected_skill
         self.db.commit()
         self.db.refresh(conv)
         return conv
