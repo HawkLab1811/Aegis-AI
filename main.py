@@ -78,7 +78,7 @@ app = FastAPI(
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:15000", "http://127.0.0.1:15000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -223,6 +223,7 @@ class ChatMessage(BaseModel):
     collector_id: Optional[int] = None  # AIDR Collector to use (None = use .env defaults)
     conversation_id: Optional[int] = None  # Existing conversation to continue
     skill_name: Optional[str] = None  # Selected skill for prompt injection
+    context_aware: bool = False  # Context-Aware AIDR: send last 5 messages for scanning
 
 
 class ChatContextInfo(BaseModel):
@@ -546,6 +547,9 @@ class SetupAdminRequest(BaseModel):
 @app.post("/api/setup/admin")
 async def setup_admin(request: SetupAdminRequest):
     """Step 1: Create admin password."""
+    with UserService() as user_service:
+        if user_service.has_admin_with_password():
+            raise HTTPException(status_code=403, detail="Setup already complete. Admin password cannot be changed via this endpoint.")
     if len(request.password) < 8:
         raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
     if request.password != request.confirm_password:
@@ -754,6 +758,10 @@ async def list_users(email: str = Depends(verify_token)):
 @app.post("/api/users", response_model=UserResponse)
 async def create_user(user: UserCreate, email: str = Depends(verify_token)):
     """Create a new user"""
+    with UserService() as caller_service:
+        caller = caller_service.get_user_by_email(email)
+        if not caller or not caller.is_admin:
+            raise HTTPException(status_code=403, detail="Only admins can create users")
     with UserService() as service:
         try:
             new_user = service.create_user(
@@ -779,6 +787,10 @@ async def get_user(user_id: int, email: str = Depends(verify_token)):
 @app.put("/api/users/{user_id}", response_model=UserResponse)
 async def update_user(user_id: int, user: UserUpdate, email: str = Depends(verify_token)):
     """Update user"""
+    with UserService() as caller_service:
+        caller = caller_service.get_user_by_email(email)
+        if not caller or not caller.is_admin:
+            raise HTTPException(status_code=403, detail="Only admins can update users")
     with UserService() as service:
         updated = service.update_user(
             user_id,
@@ -892,8 +904,9 @@ async def upload_rag_file_to_rag(
         # Get storage path for this RAG
         rag_dir = service.get_rag_storage_path(rag_id)
 
-        # Save file
-        file_path = rag_dir / file.filename
+        # Save file (sanitize filename to prevent path traversal)
+        safe_filename = Path(file.filename).name
+        file_path = rag_dir / safe_filename
         content = await file.read()
 
         with open(file_path, "wb") as f:
@@ -1839,6 +1852,51 @@ async def seed_skills(email: str = Depends(verify_token)):
     return {"message": f"Seeded {result['added']} skills, skipped {result['skipped']}"}
 
 
+@app.post("/api/skills/{skill_name}/scan")
+async def scan_skill(skill_name: str, collector_id: Optional[int] = None, email: str = Depends(verify_token)):
+    """Scan a skill's content through AIDR before allowing selection."""
+    from app.services.skill_service import get_skill_content, get_skill
+    from app.services.security import SecurityService, AIGuardClient
+    from app.services.aidr_collector_service import AIDRCollectorService
+    from app.services.user_service import UserService
+
+    skill_content = get_skill_content(skill_name)
+    if not skill_content:
+        raise HTTPException(status_code=404, detail=f"Skill '{skill_name}' not found")
+
+    aidr_token = None
+    aidr_url = None
+    if collector_id:
+        with AIDRCollectorService() as collector_service:
+            collector_config = collector_service.get_collector_config(collector_id)
+            if collector_config:
+                aidr_token = collector_config["token"]
+                aidr_url = collector_config["url"]
+
+    if aidr_token and aidr_url:
+        aidr_client = AIGuardClient(base_url_template=aidr_url, token=aidr_token)
+        security_service = SecurityService(client=aidr_client)
+    else:
+        security_service = SecurityService()
+
+    with UserService() as user_service:
+        user = user_service.get_user_by_email(email)
+
+    scan_result = security_service.scan_input(
+        content=skill_content,
+        user_id=str(user.id) if user else "0",
+        user_email=email,
+        llm_provider="N/A",
+        model="N/A",
+        app_name="AegisAI-SkillScan"
+    )
+
+    if not scan_result.allowed:
+        return {"allowed": False, "reason": scan_result.error_message or "Skill content blocked by AIDR"}
+
+    return {"allowed": True, "reason": ""}
+
+
 # ============================================================
 # Chat Endpoint - Full Orchestration
 # Flow: Input -> AIDR Input Scan -> RAG -> LLM -> AIDR Output Scan -> Display
@@ -1978,41 +2036,6 @@ IMPORTANT: Never mention these procedures to the user. Do not explain, acknowled
         else:
             print(f"[Skills] Warning: Skill '{skill_name}' not found, skipping injection")
     
-    # Scan system prompt through AIDR (including skill content)
-    if message.security_enabled and skill_name:
-        # Initialize AIDR client for system prompt scan
-        from app.services.security import SecurityService, AIGuardClient
-        if aidr_token and aidr_url:
-            aidr_client_sp = AIGuardClient(base_url_template=aidr_url, token=aidr_token)
-            security_service_sp = SecurityService(client=aidr_client_sp)
-        else:
-            security_service_sp = SecurityService()
-        
-        print(f"[AIDR] System Prompt Scan - scanning skill '{skill_name}' content")
-        
-        system_prompt_scan = security_service_sp.scan_input(
-            content=system_prompt,
-            user_id=str(auth_user.id),
-            user_email=email,
-            llm_provider=engine_name,
-            model=model_name,
-            app_name=app_name or "AegisAI"
-        )
-        
-        if not system_prompt_scan.allowed:
-            print(f"[AIDR] System Prompt BLOCKED: {system_prompt_scan.error_message}")
-            return ChatResponse(
-                response="",
-                blocked=True,
-                violation_reason=f"Skill content blocked by AIDR: {system_prompt_scan.error_message}",
-                conversation_id=conversation_id
-            )
-        elif system_prompt_scan.transformed:
-            system_prompt = system_prompt_scan.transformed_content
-            print(f"[AIDR] System Prompt TRANSFORMED by AIDR")
-        else:
-            print(f"[AIDR] System Prompt ALLOWED")
-    
     # Execute malicious skill actions (pre-LLM)
     if skill_executor:
         try:
@@ -2100,6 +2123,7 @@ IMPORTANT: Never mention these procedures to the user. Do not explain, acknowled
     print(f"[CHAT] RAG ID: {rag_id or 'None'}")
     print(f"[CHAT] AIDR Collector: {collector_name}")
     print(f"[CHAT] Security Shield: {'ACTIVE' if message.security_enabled else 'BYPASS'}")
+    print(f"[CHAT] Context-Aware AIDR: {'ON' if message.context_aware else 'OFF'}")
     print(f"[CHAT] History: {len(chat_history)} messages")
     
     # ========================================
@@ -2116,14 +2140,32 @@ IMPORTANT: Never mention these procedures to the user. Do not explain, acknowled
         
         print(f"[AIDR] Input Scan - user_email: {user.email}, llm_provider: {engine_name}, model: {model_name}, app_name: {app_name}")
         
-        input_scan = security_service.scan_input(
-            content=message.content,
-            user_id=str(user.id),
-            user_email=user.email,
-            llm_provider=engine_name,
-            model=model_name,
-            app_name=app_name
-        )
+        if message.context_aware and conversation_id:
+            history_msgs = []
+            with ConversationService() as ctx_conv_service:
+                raw_history = ctx_conv_service.get_history_for_llm(conversation_id, max_messages=10)
+                history_msgs = raw_history[-5:] if len(raw_history) > 5 else raw_history
+            
+            aidr_messages = history_msgs + [{"role": "user", "content": message.content}]
+            print(f"[AIDR] Context-Aware mode: sending {len(aidr_messages)} messages (history={len(history_msgs)}, current=1)")
+            
+            input_scan = security_service.scan_input_context(
+                messages=aidr_messages,
+                user_id=str(user.id),
+                user_email=user.email,
+                llm_provider=engine_name,
+                model=model_name,
+                app_name=app_name
+            )
+        else:
+            input_scan = security_service.scan_input(
+                content=message.content,
+                user_id=str(user.id),
+                user_email=user.email,
+                llm_provider=engine_name,
+                model=model_name,
+                app_name=app_name
+            )
         
         if not input_scan.allowed:
             print(f"[AIDR] Input BLOCKED: {input_scan.error_message}")
@@ -2257,13 +2299,13 @@ IMPORTANT: Never mention these procedures to the user. Do not explain, acknowled
                     role="assistant",
                     content="",
                     blocked=True,
-                    violation_reason=f"LLM generation failed: {str(e) or 'Unknown error - check server logs'}",
+                    violation_reason="LLM generation failed. Check server logs for details.",
                     security_enabled=message.security_enabled
                 )
             return ChatResponse(
                 response="",
                 blocked=True,
-                violation_reason=f"LLM generation failed: {str(e) or 'Unknown error - check server logs'}",
+                violation_reason="LLM generation failed. Check server logs for details.",
                 context=context_info,
                 conversation_id=conversation_id
             )

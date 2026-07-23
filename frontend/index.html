@@ -424,6 +424,15 @@
             0%, 100% { opacity: 0.5; filter: drop-shadow(0 0 2px rgba(0,212,255,0.3)); }
             50% { opacity: 1; filter: drop-shadow(0 0 8px rgba(0,212,255,0.8)); }
         }
+
+        .scanning-pulse {
+            animation: scanning-glow 1.5s ease-in-out infinite;
+        }
+
+        @keyframes scanning-glow {
+            0%, 100% { opacity: 0.7; box-shadow: 0 0 4px rgba(236,0,0,0.2); }
+            50% { opacity: 1; box-shadow: 0 0 12px rgba(236,0,0,0.5); }
+        }
         
         /* Vision scanned badge */
         .vision-badge {
@@ -913,10 +922,18 @@
                         
                         <!-- AIDR Protection Toggle -->
                         <button onclick="toggleSecurity()" class="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-aegis-surface transition-colors text-sm text-gray-300 hover:text-white">
-                            <svg id="sidebar-shield-icon" class="w-5 h-5 text-aegis-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg id="sidebar-shield-icon" class="w-5 h-5 text-aegis-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
                             </svg>
-                            <span id="sidebar-security-label">AIDR: ON</span>
+                            <span id="sidebar-security-label">AIDR: <span id="sidebar-security-state" class="text-aegis-danger">OFF</span></span>
+                        </button>
+                        
+                        <!-- Context-Aware AIDR Toggle -->
+                        <button id="context-aware-btn" onclick="toggleContextAware()" class="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-aegis-surface transition-colors text-sm text-gray-300 hover:text-white" style="display: none;">
+                            <svg id="sidebar-context-icon" class="w-5 h-5 text-aegis-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                            </svg>
+                            <span id="sidebar-context-label">Context-Aware: <span id="sidebar-context-state" class="text-aegis-danger">OFF</span></span>
                         </button>
                         
                         <!-- Log Off -->
@@ -2224,7 +2241,7 @@
         let mcpServers = [];  // MCP server configurations
         
         // Security Toggle State
-        let securityEnabled = true; // AIDR protection enabled by default
+        let securityEnabled = false; // AIDR protection disabled by default
 
         // ============================================================
         // Security Toggle Functions
@@ -2233,6 +2250,17 @@
             securityEnabled = !securityEnabled;
             updateSecurityToggleUI();
             updateChatInputWarning();
+            
+            const contextBtn = document.getElementById('context-aware-btn');
+            if (securityEnabled) {
+                if (contextBtn) contextBtn.style.display = '';
+            } else {
+                if (contextBtn) contextBtn.style.display = 'none';
+                if (contextAwareEnabled) {
+                    contextAwareEnabled = false;
+                    updateContextAwareToggleUI();
+                }
+            }
             
             if (hasFirstMessage) {
                 const state = securityEnabled ? 'ENABLED' : 'DISABLED (BYPASS MODE)';
@@ -2243,15 +2271,14 @@
         }
         
         function updateSecurityToggleUI() {
-            const sidebarIcon = document.getElementById('sidebar-shield-icon');
-            const sidebarLabel = document.getElementById('sidebar-security-label');
-            
+            const stateEl = document.getElementById('sidebar-security-state');
+            if (!stateEl) return;
             if (securityEnabled) {
-                if (sidebarIcon) sidebarIcon.className = 'w-5 h-5 text-aegis-success';
-                if (sidebarLabel) sidebarLabel.textContent = 'AIDR: ON';
+                stateEl.textContent = 'ON';
+                stateEl.className = 'text-aegis-success';
             } else {
-                if (sidebarIcon) sidebarIcon.className = 'w-5 h-5 text-aegis-warning';
-                if (sidebarLabel) sidebarLabel.textContent = 'AIDR: OFF';
+                stateEl.textContent = 'OFF';
+                stateEl.className = 'text-aegis-danger';
             }
         }
         
@@ -2263,6 +2290,37 @@
                 } else {
                     chatInputArea.classList.add('bypass-mode');
                 }
+            }
+        }
+
+        // Context-Aware AIDR Toggle
+        let contextAwareEnabled = false;
+
+        function toggleContextAware() {
+            contextAwareEnabled = !contextAwareEnabled;
+            updateContextAwareToggleUI();
+
+            if (contextAwareEnabled) {
+                alert('Context-Aware AIDR sends the last 5 messages for analysis. This may cause duplicate detections on previously scanned messages.');
+            }
+
+            if (hasFirstMessage) {
+                const state = contextAwareEnabled ? 'ENABLED' : 'DISABLED';
+                addSystemNote(`Context-Aware AIDR ${state}`);
+            }
+
+            console.log(`[Security] Context-Aware AIDR ${contextAwareEnabled ? 'ON' : 'OFF'}`);
+        }
+
+        function updateContextAwareToggleUI() {
+            const stateEl = document.getElementById('sidebar-context-state');
+            if (!stateEl) return;
+            if (contextAwareEnabled) {
+                stateEl.textContent = 'ON';
+                stateEl.className = 'text-aegis-success';
+            } else {
+                stateEl.textContent = 'OFF';
+                stateEl.className = 'text-aegis-danger';
             }
         }
 
@@ -2358,6 +2416,8 @@
             
             // Initialize skill indicator
             updateSkillIndicator();
+            // Apply initial AIDR bypass warning (AIDR starts OFF)
+            updateChatInputWarning();
         }
 
         async function loadData() {
@@ -3074,7 +3134,8 @@
                     security_enabled: securityEnabled,  // Include security toggle state
                     collector_id: currentContext.collector_id ? parseInt(currentContext.collector_id) : null,  // AIDR Collector
                     conversation_id: currentConversationId,  // Conversation tracking
-                    skill_name: currentSkill || null  // Selected skill
+                    skill_name: currentSkill || null,  // Selected skill
+                    context_aware: contextAwareEnabled  // Context-Aware AIDR
                 };
                 
                 console.log('[Aegis] Sending chat with context:', {
@@ -3169,7 +3230,31 @@
             });
         }
         
-        function selectSkill(name) {
+        async function selectSkill(name) {
+            if (securityEnabled) {
+                const ctx = captureCurrentContext();
+                const collectorId = ctx.collector_id ? parseInt(ctx.collector_id) : null;
+                let scanUrl = `/api/skills/${encodeURIComponent(name)}/scan`;
+                if (collectorId) scanUrl += `?collector_id=${collectorId}`;
+                
+                const scanNoteId = 'skill-scan-note-' + Date.now();
+                addScanningNote(scanNoteId, `Inspecting skill "${name}" in AIDR...`);
+                
+                try {
+                    const scanResponse = await apiCall(scanUrl, { method: 'POST' });
+                    const scanData = await scanResponse.json();
+                    removeScanningNote(scanNoteId);
+                    if (!scanData.allowed) {
+                        addSecurityAlert(`Skill "${name}" blocked by AIDR: ${scanData.reason}`);
+                        document.getElementById('skills-dropdown').classList.add('hidden');
+                        return;
+                    }
+                    addSystemNote(`Skill "${name}" passed AIDR inspection`);
+                } catch (err) {
+                    removeScanningNote(scanNoteId);
+                    console.error('[Skills] Scan request failed:', err);
+                }
+            }
             setSelectedSkill(name);
             document.getElementById('skills-dropdown').classList.add('hidden');
         }
@@ -3266,6 +3351,30 @@
             `;
             container.appendChild(noteDiv);
             scrollToBottom();
+        }
+
+        function addScanningNote(id, note) {
+            const container = document.getElementById('messages-container');
+            const noteDiv = document.createElement('div');
+            noteDiv.id = id;
+            noteDiv.className = 'message-enter';
+            noteDiv.innerHTML = `
+                <div class="flex justify-center my-2">
+                    <div class="flex items-center gap-2 px-4 py-2 bg-aegis-accent/10 border border-aegis-accent/30 rounded-full text-xs text-aegis-accent scanning-pulse">
+                        <svg class="w-3.5 h-3.5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        </svg>
+                        <span>${escapeHtml(note)}</span>
+                    </div>
+                </div>
+            `;
+            container.appendChild(noteDiv);
+            scrollToBottom();
+        }
+
+        function removeScanningNote(id) {
+            const el = document.getElementById(id);
+            if (el) el.remove();
         }
         
         // ---- Pending State Management ----

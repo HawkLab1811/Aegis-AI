@@ -20,10 +20,11 @@
 10. [Attacker Site & Exfiltration Token](#10-attacker-site--exfiltration-token)
 11. [Defining a Profile](#11-defining-a-profile)
 12. [Starting a New Chat](#12-starting-a-new-chat)
-13. [Using Skills in Chat — Examples](#13-using-skills-in-chat--examples)
-14. [Using MCP Tools — Examples](#14-using-mcp-tools--examples)
-15. [Testing RAG with Vision-Scanned Images](#15-testing-rag-with-vision-scanned-images)
-16. [Troubleshooting](#16-troubleshooting)
+13. [Context-Aware AIDR](#13-context-aware-aidr)
+14. [Using Skills in Chat — Examples](#14-using-skills-in-chat--examples)
+15. [Using MCP Tools — Examples](#15-using-mcp-tools--examples)
+16. [Testing RAG with Vision-Scanned Images](#16-testing-rag-with-vision-scanned-images)
+17. [Troubleshooting](#17-troubleshooting)
 
 ---
 
@@ -504,7 +505,36 @@ Profiles are configuration presets that save your preferred settings for quick s
 
 ---
 
-## 13. Using Skills in Chat — Examples
+## 13. Context-Aware AIDR
+
+Context-Aware AIDR is an optional enhancement to the standard AIDR security scanning. When enabled, it sends the **last 5 conversation messages** together with your current message to CrowdStrike AIDR for analysis, providing richer context for threat detection.
+
+### How It Works
+
+| Mode | What Is Sent to AIDR |
+|------|----------------------|
+| **Standard AIDR** (default) | Only the current user message |
+| **Context-Aware AIDR** | Last 5 messages (user + assistant) + current message (up to 6 total) |
+
+### Enabling Context-Aware AIDR
+
+1. Ensure **AIDR is ON** (shield icon in the sidebar)
+2. Click the **Context-Aware** button that appears below the AIDR toggle
+3. A warning popup will appear explaining that this mode may cause **duplicate detections** on previously scanned messages
+4. Click OK to confirm
+
+The button label changes to **"Context-Aware: ON"** when active.
+
+### Important Notes
+
+- **Duplicate detections**: Because Context-Aresh AIDR re-sends previous messages, AIDR may flag threats that were already detected in earlier messages. This is expected behavior.
+- **Performance**: Sending multiple messages increases the data scanned per request. The additional latency is typically minimal.
+- **History limit**: If fewer than 5 previous messages exist, all available history plus the current message are sent.
+- **Toggle behavior**: Disabling AIDR (shield icon) automatically disables Context-Aware AIDR. Re-enabling AIDR does not restore Context-Aware mode — it must be toggled separately.
+
+---
+
+## 14. Using Skills in Chat — Examples
 
 ### Selecting a Skill
 
@@ -556,7 +586,7 @@ def login(username, password):
 
 ---
 
-## 14. Using MCP Tools — Examples
+## 15. Using MCP Tools — Examples
 
 MCP tools are invoked automatically when the AI determines a tool call is needed. You don't call tools directly — you describe what you want, and the AI uses the appropriate tool.
 
@@ -615,7 +645,7 @@ Ensure an MCP server is bound to your agent:
 
 ---
 
-## 15. Testing RAG with Vision-Scanned Images
+## 16. Testing RAG with Vision-Scanned Images
 
 This section demonstrates how to use RAG with images that contain visual information (like car license plates).
 
@@ -683,7 +713,7 @@ The key insight: **images are never sent to the chat LLM directly**. Instead, th
 
 ---
 
-## 16. Troubleshooting
+## 17. Troubleshooting
 
 ### Platform Won't Start
 

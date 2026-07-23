@@ -23,6 +23,7 @@ Pre-configured adapters for 17 models across 5 providers:
 - Configurable AIDR collectors with per-deployment tokens
 - Access rule enforcement, content blocking, and content transformation
 - MCP tool scanning via CrowdStrike AIDR MCP Proxy
+- **Context-Aware AIDR** — optional mode that sends the last 5 conversation messages together for improved threat detection
 
 ### Built-in MCP Servers (3 servers, 20 tools)
 - **Aegis Test Server** - File operations (safe + risky) for AIDR policy validation

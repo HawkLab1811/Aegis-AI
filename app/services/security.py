@@ -518,6 +518,52 @@ class SecurityService:
             extra_info=extra_info
         )
     
+    def scan_input_context(
+        self,
+        messages: list,
+        user_id: str,
+        user_email: str,
+        llm_provider: str,
+        model: str,
+        source_ip: str = "127.0.0.1",
+        model_version: str = "latest",
+        app_name: str = "AegisAI"
+    ) -> GuardResponse:
+        """
+        Scan multiple messages for context-aware AIDR detection.
+        
+        Args:
+            messages: List of message dicts with 'role' and 'content' keys
+            user_id: User ID from database
+            user_email: User's email address (for ExtraInfo.user_name)
+            llm_provider: AI provider (e.g., "OpenAI", "Anthropic")
+            model: Model name
+            source_ip: Client IP address
+            model_version: Model version
+            app_name: Application name to send to AIDR
+            
+        Returns:
+            GuardResponse with scan results
+        """
+        guard_input = {"messages": messages}
+        
+        extra_info = ExtraInfo(
+            user_name=user_email,
+            app_name=app_name
+        )
+        
+        return self.client.guard_chat_completions(
+            guard_input=guard_input,
+            event_type=EventType.INPUT.value,
+            app_id=app_name,
+            user_id=user_id,
+            llm_provider=llm_provider,
+            model=model,
+            model_version=model_version,
+            source_ip=source_ip,
+            extra_info=extra_info
+        )
+    
     def scan_output(
         self,
         content: str,
