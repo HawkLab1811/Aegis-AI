@@ -105,6 +105,17 @@ def _run_migrations():
                 print("[DB Migration] Added password_hash column to users")
             except Exception as e:
                 db.rollback()
+
+        # Check if selected_skill column exists in conversations
+        try:
+            db.execute(sqlalchemy.text("SELECT selected_skill FROM conversations LIMIT 1"))
+        except Exception:
+            try:
+                db.execute(sqlalchemy.text("ALTER TABLE conversations ADD COLUMN selected_skill VARCHAR(255)"))
+                db.commit()
+                print("[DB Migration] Added selected_skill column to conversations")
+            except Exception as e:
+                db.rollback()
     finally:
         db.close()
 
