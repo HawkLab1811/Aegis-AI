@@ -59,7 +59,7 @@ A guided 4-step setup that runs on first launch:
 - Full CRUD operations via Settings page and REST API
 
 <!-- Screenshot: Main Dashboard -->
-![Main Dashboard](screenshots/main.png)
+![Main Dashboard](screenshots/main_new.png)
 
 ---
 
